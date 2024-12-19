@@ -52,6 +52,58 @@ def plot_test_error_curves_vs(sample_dict, random_seeds, degrees):
     fig.set_facecolor('white')
     plt.show()
 
+def k_fold_cross_val_poly(folds, degrees, X, y):
+    """
+    Use the k-fold cross validation method to create k separate training test splits over linear
+    regression models of varying flexibility
+    """
+    # Create the KFold object and set the initial fold to zero
+    n = len(X)
+    kf = KFold(n_splits=folds, shuffle=True, random_state=42)
+    kf_dict = dict(("fold_%s" % i, []) for i in range(1, folds+1))
+    fold = 0
+    # Loop over the k-folds
+    for train_index, test_index in kf.split(X):
+        fold += 1
+        print("Fold: %s" % fold)
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+        # Increase degree of linear regression polynomial order
+        for d in range(1, degrees + 1):
+            print("Degree: %s" % d)
+            # Create the model and fit it
+            polynomial_features = PolynomialFeatures(degree=d, include_bias=False)
+            linear_regression = LinearRegression()
+            model = Pipeline([("polynomial_features", polynomial_features),("linear_regression", linear_regression)])
+            model.fit(X_train, y_train)
+            # Calculate the test MSE and append to the dictionary of all test curves
+            y_pred = model.predict(X_test)
+            test_mse = mean_squared_error(y_test, y_pred)
+            kf_dict["fold_%s" % fold].append(test_mse)
+        # Convert these lists into numpy arrays to perform averaging
+        kf_dict["fold_%s" % fold] = np.array(kf_dict["fold_%s" % fold])
+    # Create the "average test MSE" series by averaging the test MSE for each degree of the linear regression model,
+    # across each of the k folds.
+    kf_dict["avg"] = np.zeros(degrees)
+    for i in range(1, folds + 1):
+        kf_dict["avg"] += kf_dict["fold_%s" % i]
+    kf_dict["avg"] /= float(folds)
+    return kf_dict
+
+
+def plot_test_error_curves_kf(kf_dict, folds, degrees):
+    fig, ax = plt.subplots()
+    ds = range(1, degrees+1)
+    for i in range(1, folds+1):
+        ax.plot(ds, kf_dict["fold_%s" % i], lw=2, label='Test MSE - Fold %s' % i)
+    ax.plot(ds,kf_dict["avg"], linestyle= '--', color= "k", lw=3, label= 'Avg Test MSE')
+    ax.legend(loc=0)
+    ax.set_xlabel('Degree of Polynomial Fit')
+    ax.set_ylabel('Mean Squared Error')
+    fig.set_facecolor('white')
+    plt.show()
+
+
 if __name__ == '__main__':
     symbol = "AMZN"
     start_date = datetime.datetime(2004, 1, 1)
@@ -59,5 +111,7 @@ if __name__ == '__main__':
     df = obtain_lagged_series(symbol, start_date, end_date, lags=10)
     X = df[['lag1', 'lag2', 'lag3', 'lag4', 'lag5', 'lag6', 'lag7', 'lag8', 'lag9', 'lag10']]
     y = df['direction']
-    samples = validation_set_poly(10, 3 , X, y)
-    plot_test_error_curves_vs(samples, 10, 3)
+    # samples = validation_set_poly(10, 3 , X, y)
+    # plot_test_error_curves_vs(samples, 10, 3)
+    samples = k_fold_cross_val_poly(10, 3, X, y)
+    plot_test_error_curves_kf(samples, 10, 3)
