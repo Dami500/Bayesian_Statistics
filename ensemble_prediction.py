@@ -120,13 +120,16 @@ if __name__ == '__main__':
 
     # Plot the chart of MSE versus number of estimators
     plt.figure(figsize=(8, 8))
-    plt.title('Bagging, RandomForest and Boosting comparison')
-    plt.plot(estimators, bagging_mse, 'b -', color = "black", label ='Bagging')
-    plt.plot(estimators, rf_mse, 'b -', color = "blue", label ='RandomForest')
-    plt.plot(estimators, boosting_mse, 'b -', color = "red", label ='AdaBoost')
-    plt.legend(loc='upper right')
-    plt.xlabel('Estimators')
-    plt.ylabel('Mean Squared Error')
+    plt.title('Comparison of Bagging, RandomForest, and Boosting', fontsize=16)
+    plt.plot(estimators, bagging_mse, linestyle='-', color='black', label='Bagging')
+    plt.plot(estimators, rf_mse, linestyle='-', color='blue', label='RandomForest')
+    plt.plot(estimators, boosting_mse, linestyle='-', color='red', label='AdaBoost')
+    plt.xlabel('Number of Estimators', fontsize=14)
+    plt.ylabel('Mean Squared Error (MSE)', fontsize=14)
+    # Legend
+    plt.legend(loc='upper right', fontsize=12)
+    # Display the plot
+    plt.show()
     plt.show()
 
 
