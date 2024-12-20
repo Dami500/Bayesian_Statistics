@@ -66,19 +66,23 @@ def plot_candlesticks(data, since, end):
         horizontalalignment='right')
     plt.show()
 
-def plot_3d_normalised_candles(data):
+def plot_3d_normalised_candles(data, labels):
     """
     Plot a 3D scatter chart of the open-normalised bars
     highlighting the separate clusters by colour
     """
-    fig = plt.figure(figsize=(12, 9))
-    ax = Axes3D(fig, elev=21, azim=-136)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    # Ensure labels are numeric
+    labels = labels.astype(float)
+    # Scatter plot in 3D
     ax.scatter(data["H/O"], data["L/O"], data["C/O"],
-    c= labels.astype(float))
+               c=labels)
     ax.set_xlabel('High/Open')
     ax.set_ylabel('Low/Open')
     ax.set_zlabel('Close/Open')
     plt.show()
+
 
 
 def plot_cluster_ordered_candles(data):
@@ -110,8 +114,7 @@ def plot_cluster_ordered_candles(data):
     csticks = candlestick_ohlc(
         ax, df[["clust_index", 'open_price', 'high_price', 'low_price', 'close_price']].values, width=0.6,
         colorup='#000000', colordown='#ff0000')
-    ax.set_axis_bgcolor((1, 1, 0.9))  # Light background color
-
+    ax.set_facecolor((1, 1, 0.9))  # Light background color
     # Add cluster boundaries as blue dotted lines
     for row in change_indices.iterrows():
         plt.axvline(
@@ -142,7 +145,7 @@ def create_follow_cluster_matrix(data):
     k = len(data["Cluster"].unique())
     clust_mat = np.zeros((k, k))
     # Populate matrix with percentages
-    for row in cmvc.iteritems():
+    for row in cmvc.items():
         clust_mat[row[0]] = row[1] * 100.0 / len(data)
     print("Cluster Follow-on Matrix:")
     print(clust_mat)
@@ -153,19 +156,25 @@ if __name__ == "__main__":
     end = datetime.datetime(2015, 12, 31)
     location = get_prices_id(['SPY'])
     spy = get_prices(location)[0]
+    spy = spy.loc[(spy['price_date'] >= start) & (spy['price_date']<= end)]
     # print(spy)
     # Plot last year of price "candles"
     plot_candlesticks(spy, datetime.datetime(2015, 1, 1), datetime.datetime(2015, 12,31))
     # Carry out K-Means clustering with five clusters on the
     # three-dimensional data H/O, L/O and C/O
     sp500_norm = get_open_normalised_prices(['SPY'], start, end)
+    # print(sp500_norm)
+    # print(len(sp500_norm))
     k = 5
     km = KMeans(n_clusters=k, random_state=42)
     km.fit(sp500_norm[['H/O','L/O','C/O']])
     labels = km.labels_
+    # print(labels)
+    # print(len(labels))
     spy["Cluster"] = labels
+    # print(spy)
     # Plot the 3D normalised candles using H/O, L/O, C/O
-    plot_3d_normalised_candles(sp500_norm)
+    plot_3d_normalised_candles(sp500_norm, labels)
     # Plot the full OHLC candles re-ordered
     # into their respective clusters
     plot_cluster_ordered_candles(spy)
